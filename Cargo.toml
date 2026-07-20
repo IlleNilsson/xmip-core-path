@@ -1,0 +1,10 @@
+[package]
+name = "xmip-path"
+version = "0.1.0"
+edition = "2024"
+license = "MIT"
+repository = "https://github.com/IlleNilsson/xmip-path"
+description = "Path declarations and path execution contracts for Xmip."
+
+[dependencies]
+xmip-contract = { git = "https://github.com/IlleNilsson/xmip-contract", rev = "8de0c03a12d9fc038a2a521bea164533643479b3" }
