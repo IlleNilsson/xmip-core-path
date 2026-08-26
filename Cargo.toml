@@ -2,12 +2,12 @@
 [workspace]
 
 [package]
-name = "xmip-path"
+name = "xmip-core-path"
 version = "0.1.0"
 edition = "2024"
 license = "AGPL-3.0-or-later"
-repository = "https://github.com/IlleNilsson/xmip-path"
+repository = "https://github.com/IlleNilsson/xmip-core-path"
 description = "Path declarations and path execution contracts for Xmip."
 
 [dependencies]
-xmip-contract = { git = "https://github.com/IlleNilsson/xmip-contract", rev = "8de0c03a12d9fc038a2a521bea164533643479b3" }
+xmip-contract = { package = "xmip-core-contract", git = "https://github.com/IlleNilsson/xmip-core-contract", branch = "main" }
