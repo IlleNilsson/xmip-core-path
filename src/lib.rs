@@ -1,6 +1,6 @@
 #![forbid(unsafe_code)]
 
-use xmip_contract::{ContractError, StructuredValue, StructureReader, StructureWriter};
+use xmip_contract::{ContractError, StructureReader, StructureWriter, StructuredValue};
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct Path {
@@ -10,7 +10,10 @@ pub struct Path {
 
 impl Path {
     pub fn new(language: impl Into<String>, expression: impl Into<String>) -> Self {
-        Self { language: language.into(), expression: expression.into() }
+        Self {
+            language: language.into(),
+            expression: expression.into(),
+        }
     }
 }
 
@@ -39,8 +42,17 @@ pub enum PathCost {
 
 pub trait PathEngine: Send + Sync {
     fn language(&self) -> &'static str;
-    fn read(&self, reader: &dyn StructureReader, path: &Path) -> Result<Option<StructuredValue>, ContractError>;
-    fn write(&self, writer: &mut dyn StructureWriter, path: &Path, value: StructuredValue) -> Result<(), ContractError>;
+    fn read(
+        &self,
+        reader: &dyn StructureReader,
+        path: &Path,
+    ) -> Result<Option<StructuredValue>, ContractError>;
+    fn write(
+        &self,
+        writer: &mut dyn StructureWriter,
+        path: &Path,
+        value: StructuredValue,
+    ) -> Result<(), ContractError>;
 
     /// Defaults to the expensive answer on purpose. An engine that has not
     /// thought about cost should not be trusted to promise a cheap one, and
@@ -53,13 +65,24 @@ pub trait PathEngine: Send + Sync {
 pub struct DirectPathEngine;
 
 impl PathEngine for DirectPathEngine {
-    fn language(&self) -> &'static str { "direct" }
+    fn language(&self) -> &'static str {
+        "direct"
+    }
 
-    fn read(&self, reader: &dyn StructureReader, path: &Path) -> Result<Option<StructuredValue>, ContractError> {
+    fn read(
+        &self,
+        reader: &dyn StructureReader,
+        path: &Path,
+    ) -> Result<Option<StructuredValue>, ContractError> {
         reader.read(&path.expression)
     }
 
-    fn write(&self, writer: &mut dyn StructureWriter, path: &Path, value: StructuredValue) -> Result<(), ContractError> {
+    fn write(
+        &self,
+        writer: &mut dyn StructureWriter,
+        path: &Path,
+        value: StructuredValue,
+    ) -> Result<(), ContractError> {
         writer.write(&path.expression, value)
     }
 
@@ -76,10 +99,21 @@ mod tests {
 
     #[test]
     fn cheaper_costs_order_before_expensive_ones() {
-        let mut costs = vec![PathCost::Materialized, PathCost::StreamPrefix, PathCost::StreamScan];
+        let mut costs = vec![
+            PathCost::Materialized,
+            PathCost::StreamPrefix,
+            PathCost::StreamScan,
+        ];
         costs.sort();
 
-        assert_eq!(costs, vec![PathCost::StreamPrefix, PathCost::StreamScan, PathCost::Materialized]);
+        assert_eq!(
+            costs,
+            vec![
+                PathCost::StreamPrefix,
+                PathCost::StreamScan,
+                PathCost::Materialized
+            ]
+        );
     }
 
     #[test]
@@ -87,17 +121,31 @@ mod tests {
         struct Silent;
 
         impl PathEngine for Silent {
-            fn language(&self) -> &'static str { "silent" }
+            fn language(&self) -> &'static str {
+                "silent"
+            }
 
-            fn read(&self, _reader: &dyn StructureReader, _path: &Path) -> Result<Option<StructuredValue>, ContractError> {
+            fn read(
+                &self,
+                _reader: &dyn StructureReader,
+                _path: &Path,
+            ) -> Result<Option<StructuredValue>, ContractError> {
                 Ok(None)
             }
 
-            fn write(&self, _writer: &mut dyn StructureWriter, _path: &Path, _value: StructuredValue) -> Result<(), ContractError> {
+            fn write(
+                &self,
+                _writer: &mut dyn StructureWriter,
+                _path: &Path,
+                _value: StructuredValue,
+            ) -> Result<(), ContractError> {
                 Ok(())
             }
         }
 
-        assert_eq!(Silent.cost(&Path::new("silent", "/a")), PathCost::Materialized);
+        assert_eq!(
+            Silent.cost(&Path::new("silent", "/a")),
+            PathCost::Materialized
+        );
     }
 }
