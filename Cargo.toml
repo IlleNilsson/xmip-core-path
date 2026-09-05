@@ -10,4 +10,4 @@ repository = "https://github.com/IlleNilsson/xmip-core-path"
 description = "Path declarations and path execution contracts for Xmip."
 
 [dependencies]
-xmip-contract = { package = "xmip-core-contract", git = "https://github.com/IlleNilsson/xmip-core-contract", branch = "main" }
+contract = { package = "xmip-core-contract", git = "https://github.com/IlleNilsson/xmip-core-contract", branch = "main" }

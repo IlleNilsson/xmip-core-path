@@ -1,6 +1,6 @@
 #![forbid(unsafe_code)]
 
-use xmip_contract::{ContractError, StructureReader, StructureWriter, StructuredValue};
+use contract::{ContractError, StructureReader, StructureWriter, StructuredValue};
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct Path {
