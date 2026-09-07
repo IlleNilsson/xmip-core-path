@@ -1,0 +1,9 @@
+[submodule "xmip-core-path-json-pointer"]
+	path = json-pointer
+	url = https://github.com/IlleNilsson/xmip-core-path-json-pointer.git
+[submodule "xmip-core-path-xpath"]
+	path = xpath
+	url = https://github.com/IlleNilsson/xmip-core-path-xpath.git
+[submodule "xmip-core-path-index"]
+	path = index
+	url = https://github.com/IlleNilsson/xmip-core-path-index.git
