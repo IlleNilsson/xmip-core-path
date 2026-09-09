@@ -7,3 +7,18 @@
 [submodule "xmip-core-path-index"]
 	path = index
 	url = https://github.com/IlleNilsson/xmip-core-path-index.git
+[submodule "dot"]
+	path = dot
+	url = https://github.com/IlleNilsson/xmip-core-path-dot.git
+[submodule "jsonpath"]
+	path = jsonpath
+	url = https://github.com/IlleNilsson/xmip-core-path-jsonpath.git
+[submodule "fhirpath"]
+	path = fhirpath
+	url = https://github.com/IlleNilsson/xmip-core-path-fhirpath.git
+[submodule "predicate"]
+	path = predicate
+	url = https://github.com/IlleNilsson/xmip-core-path-predicate.git
+[submodule "regex"]
+	path = regex
+	url = https://github.com/IlleNilsson/xmip-core-path-regex.git
