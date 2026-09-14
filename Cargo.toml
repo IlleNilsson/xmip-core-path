@@ -13,5 +13,15 @@ description = "Path declarations and path execution contracts for Xmip."
 # A host crate: the technologies mount beside this source (ADR-0049).
 path = ".src/lib.rs"
 
+[features]
+# The Stream fixture a technology's tests read, contract's, passed through
+# (lib.rs). A technology enables it from its dev-dependencies.
+test-support = ["contract/test-support"]
+
 [dependencies]
 contract = { package = "xmip-core-contract", git = "https://github.com/IlleNilsson/xmip-core-contract", branch = "main" }
+# The JSON document the JSON path technologies share (json.rs, ADR-0044): the
+# Stream it is read from, the StreamId a rewrite carries, and the one parser.
+stream = { package = "xmip-core-stream", git = "https://github.com/IlleNilsson/xmip-core-stream", branch = "main" }
+xcore = { package = "xmip-core", git = "https://github.com/IlleNilsson/xmip-core", branch = "main" }
+serde_json = "1"

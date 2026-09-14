@@ -1,5 +1,15 @@
 #![forbid(unsafe_code)]
 
+// What every technology of this capability shares, held here rather than
+// copied into each (ADR-0044): the token cursor a parser walks, the JSON
+// document the JSON languages read and rewrite, and the Stream fixture the
+// tests read, which is contract's and passes through.
+pub mod cursor;
+pub mod json;
+
+#[cfg(feature = "test-support")]
+pub use contract::fixture;
+
 use contract::{ContractError, StructureReader, StructureWriter, StructuredValue};
 
 #[derive(Clone, Debug, Eq, PartialEq)]
