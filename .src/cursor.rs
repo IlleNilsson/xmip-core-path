@@ -3,7 +3,7 @@
 //! grammar are each language's own; what is the same is looking at the next
 //! token, taking it, and insisting on one.
 
-use sdk::contract::ContractError;
+use contract::ContractError;
 use std::fmt::Debug;
 
 /// A cursor over a language's tokens.

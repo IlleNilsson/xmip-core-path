@@ -5,7 +5,7 @@
 //! asks of anything that changes content. How a language walks the value is
 //! each technology's own.
 
-use sdk::contract::{ContractDescriptor, ContractError, ContractId, StructuredValue};
+use contract::{ContractDescriptor, ContractError, ContractId, StructuredValue};
 use serde_json::Value;
 use stream::Stream;
 use xcore::StreamId;
