@@ -19,6 +19,7 @@ path = ".src/lib.rs"
 test-support = ["contract/test-support"]
 
 [dependencies]
+sdk = { package = "xmip-core-sdk", git = "https://github.com/IlleNilsson/xmip-core-sdk", branch = "main" }
 contract = { package = "xmip-core-contract", git = "https://github.com/IlleNilsson/xmip-core-contract", branch = "main" }
 # The JSON document the JSON path technologies share (json.rs, ADR-0044): the
 # Stream it is read from, the StreamId a rewrite carries, and the one parser.
