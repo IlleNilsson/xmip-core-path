@@ -10,7 +10,7 @@ pub mod json;
 #[cfg(feature = "test-support")]
 pub use contract::fixture;
 
-use contract::{ContractError, StructureReader, StructureWriter, StructuredValue};
+use sdk::contract::{ContractError, StructureReader, StructureWriter, StructuredValue};
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct Path {
