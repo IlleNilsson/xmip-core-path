@@ -3,8 +3,11 @@
 // What every technology of this capability shares, held here rather than
 // copied into each (ADR-0044): the token cursor a parser walks, the JSON
 // document the JSON languages read and rewrite, and the Stream fixture the
-// tests read, which is contract's and passes through.
+// tests read, which is contract's and passes through. And Xmip's one
+// expression language (ADR-0066), which route, configure and what is
+// compiled from a design all read.
 pub mod cursor;
+pub mod expression;
 pub mod json;
 
 #[cfg(feature = "test-support")]

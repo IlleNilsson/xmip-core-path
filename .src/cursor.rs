@@ -1,5 +1,5 @@
 //! The cursor a path language's parser walks its tokens with, shared by
-//! `FHIRPath` and the predicate language (ADR-0044). The tokens and the
+//! `FHIRPath` and Xmip's expression language (ADR-0044, ADR-0066). The tokens and the
 //! grammar are each language's own; what is the same is looking at the next
 //! token, taking it, and insisting on one.
 
