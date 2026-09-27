@@ -1,9 +1,23 @@
 # xmip-core-path
 
 Declared Paths: an addressing language and an expression, used to address
-values in structured content and in artifacts. A `PathEngine` evaluates one
-language and reports its `PathCost`; each language — XPath, JSON Pointer and
-the rest — is a technology mounted directly under this repository.
+values in structured content and in artifacts. Each language — XPath, JSON
+Pointer and the rest — is a technology mounted directly under this repository
+and implements `PathLanguage`; the one `PathEngine` carries the languages
+configuration loads and compiles a `Path` through the one it names, once,
+into a `CompiledPath`.
+
+**Once, per message.** Nothing on the message path parses an expression: it
+was compiled with the configuration. A compiled path reads `Content`, one
+Stream parsed at most once per form (`Form`) however many paths read it —
+`dot`, `jsonpath`, `json-pointer` and `fhirpath` share one JSON parse through
+`json`, the text languages borrow the Stream's own text — and writes through
+`Rewriting`, which opens the Stream once into the form a language edits
+(`Editable`), lets every write land there, and writes it back once, as
+ADR-0013's new Stream. Two forms in one rewrite close the first before the
+second opens, so a later write sees an earlier one. The tests hold it: a
+path compiled once reads a thousand Messages without compiling again, and a
+form is parsed once however often it is asked for.
 
 A Path addresses; it does not parse, serialize or evaluate a Contract. The
 representation technologies materialize content, this addresses it, and a
