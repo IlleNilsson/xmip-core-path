@@ -25,3 +25,15 @@ contract = { package = "xmip-core-contract", git = "https://github.com/IlleNilss
 stream = { package = "xmip-core-stream", git = "https://github.com/IlleNilsson/xmip-core-stream", branch = "main" }
 xcore = { package = "xmip-core", git = "https://github.com/IlleNilsson/xmip-core", branch = "main" }
 serde_json = "1"
+# Xmip's expression language (expression.rs, ADR-0066): its lexer reads
+# through the one character reader, and an expression is read from and
+# written to configuration as its text.
+codec = { package = "xmip-core-library-codec", git = "https://github.com/IlleNilsson/xmip-core-library-codec", branch = "main" }
+serde = "1"
+
+[dev-dependencies]
+# Only the tests read an expression out of a TOML document.
+toml = "0.9"
+
+[profile.dev.package."*"]
+opt-level = 3

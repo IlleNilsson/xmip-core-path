@@ -16,9 +16,6 @@
 [submodule "fhirpath"]
 	path = fhirpath
 	url = https://github.com/IlleNilsson/xmip-core-path-fhirpath.git
-[submodule "predicate"]
-	path = predicate
-	url = https://github.com/IlleNilsson/xmip-core-path-predicate.git
 [submodule "regex"]
 	path = regex
 	url = https://github.com/IlleNilsson/xmip-core-path-regex.git
