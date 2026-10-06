@@ -1,8 +1,8 @@
 //! Xmip's expression language (ADR-0066 clause 2): the one grammar a
-//! route's filter, a transform's conditions and an Xmip Process's decisions
+//! route's filter, a transform's conditions and a Work Process's decisions
 //! are written in. It is the path capability's own, not a technology of it,
 //! because every layer that reads an expression — route, the transforms and
-//! Xmip Processes compiled from designs, and `configure`, a platform service
+//! Work Processes compiled from designs, and `configure`, a platform service
 //! that may depend on a capability and never on a technology — must reach
 //! the one tree.
 //!

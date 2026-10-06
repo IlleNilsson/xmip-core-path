@@ -26,7 +26,7 @@ Contract evaluates it, and none absorbs the other two
 
 **Xmip's expression language** (`expression`, ADR-0066) is this
 capability's own, not a technology of it: the one grammar a route's filter,
-a transform's conditions and an Xmip Process's decisions are written in,
+a transform's conditions and a Work Process's decisions are written in,
 read by route, by `configure` (a platform service, which may depend on a
 capability and never on a technology) and by what is compiled from a
 design.
