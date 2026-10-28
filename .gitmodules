@@ -19,3 +19,9 @@
 [submodule "regex"]
 	path = regex
 	url = https://github.com/IlleNilsson/xmip-core-path-regex.git
+[submodule "xmip-core-path-edi"]
+	path = edi
+	url = https://github.com/IlleNilsson/xmip-core-path-edi.git
+[submodule "xmip-core-path-hl7-v2"]
+	path = hl7-v2
+	url = https://github.com/IlleNilsson/xmip-core-path-hl7-v2.git
