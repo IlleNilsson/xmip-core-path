@@ -29,7 +29,7 @@ serde = "1"
 
 [dev-dependencies]
 # Only the tests read an expression out of a TOML document.
-toml = "0.9"
+toml = "1"
 
 [profile.dev.package."*"]
 opt-level = 3
