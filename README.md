@@ -53,4 +53,4 @@ character reader and its parser walks this crate's `cursor`, as FHIRPath's
 does.
 
 `doc/architecture/runtime-model.md` section 9, *Path*, governs it;
-`architecture.toml` names the languages and carries the maturity.
+`architecture.xmip` names the languages and carries the maturity.
