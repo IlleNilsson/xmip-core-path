@@ -352,6 +352,7 @@ fn into_operand(parsed: Parsed) -> Result<Operand, ContractError> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use std::assert_matches;
 
     fn parsed(text: &str) -> String {
         condition(text).expect("parses").to_string()
@@ -370,7 +371,7 @@ mod tests {
             panic!("an and at the top: {read:?}");
         };
         assert_eq!(parts.len(), 3);
-        assert!(matches!(parts[1], Condition::Not(_)));
+        assert_matches!(parts[1], Condition::Not(_));
         assert_eq!(read.to_string(), filter);
     }
 
@@ -400,9 +401,9 @@ mod tests {
     #[test]
     fn a_group_in_parentheses_stays_a_group_and_a_chain_is_one() {
         let nested = condition("a = 1 and (b = 2 and c = 3)").expect("parses");
-        assert!(matches!(&nested, Condition::All(parts) if parts.len() == 2));
+        assert_matches!(&nested, Condition::All(parts) if parts.len() == 2);
         let flat = condition("a = 1 and b = 2 and c = 3").expect("parses");
-        assert!(matches!(&flat, Condition::All(parts) if parts.len() == 3));
+        assert_matches!(&flat, Condition::All(parts) if parts.len() == 3);
         assert_eq!(nested.to_string(), "a = 1 and (b = 2 and c = 3)");
     }
 
