@@ -22,8 +22,18 @@ pub trait Form: Sized + 'static {
     fn parse(stream: &Stream) -> Result<Self, ContractError>;
 }
 
+/// `stream` as UTF-8 text, for a path or a [`Form`] that reads text: the one
+/// refusal every text language gives.
+///
+/// # Errors
+/// The Stream could not be read, or is not UTF-8; each says which.
+pub fn text(stream: &Stream) -> Result<&str, ContractError> {
+    contract::text(stream)?.map_err(|error| ContractError::new(format!("not UTF-8 text: {error}")))
+}
+
 /// One form, parsed, or why it could not be. A refusal is kept too, so a
-/// Stream that is not JSON is found so once, not once per path.
+/// Stream that is not JSON is found so once, not once per path; a Stream
+/// that could not be read is not a refusal, and is not kept.
 struct Parsed {
     kind: TypeId,
     form: Result<Rc<dyn Any>, String>,
@@ -55,18 +65,18 @@ impl<'s> Content<'s> {
     /// from it, never copied.
     ///
     /// # Errors
-    /// The Stream is not UTF-8.
+    /// The Stream could not be read, or is not UTF-8; each says which.
     pub fn text(&self) -> Result<&'s str, ContractError> {
-        self.stream
-            .text()
-            .map_err(|error| ContractError::new(format!("not UTF-8 text: {error}")))
+        text(self.stream)
     }
 
     /// The Stream as `T`, parsed on the first call and shared by every later
     /// one.
     ///
     /// # Errors
-    /// The Stream is not in the form `T`; the same refusal every time.
+    /// The Stream is not in the form `T`; the same refusal every time. A
+    /// Stream that could not be read is not kept as a refusal: the next call
+    /// reads it again.
     pub fn form<T: Form>(&self) -> Result<Rc<T>, ContractError> {
         let kind = TypeId::of::<T>();
         let known = self
@@ -81,10 +91,12 @@ impl<'s> Content<'s> {
                 let form = T::parse(self.stream)
                     .map(|parsed| Rc::new(parsed) as Rc<dyn Any>)
                     .map_err(|refused| refused.message);
-                self.forms.borrow_mut().push(Parsed {
-                    kind,
-                    form: form.clone(),
-                });
+                if form.is_ok() || self.stream.unread().is_none() {
+                    self.forms.borrow_mut().push(Parsed {
+                        kind,
+                        form: form.clone(),
+                    });
+                }
                 form
             }
         };
@@ -147,5 +159,37 @@ mod tests {
                 .message
                 .starts_with("not UTF-8 text")
         );
+    }
+
+    /// Kept content that cannot be reached, counting how often it is asked.
+    struct Gone(AtomicUsize);
+
+    impl stream::Content for Gone {
+        fn reader(&self) -> std::io::Result<Box<dyn std::io::Read + Send + '_>> {
+            self.0.fetch_add(1, Ordering::Relaxed);
+            Err(std::io::Error::other("no chunk"))
+        }
+    }
+
+    /// The whole content, as a form.
+    struct Whole;
+
+    impl Form for Whole {
+        fn parse(stream: &Stream) -> Result<Self, ContractError> {
+            stream.load()?;
+            Ok(Self)
+        }
+    }
+
+    #[test]
+    fn a_stream_that_cannot_be_read_says_so_and_is_read_again() {
+        let gone = std::sync::Arc::new(Gone(AtomicUsize::new(0)));
+        let stream = Stream::kept(StreamId::new(3), 4, None, gone.clone());
+        let content = Content::of(&stream);
+        let refused = content.text().expect_err("not read");
+        assert!(refused.message.contains("no chunk"), "{refused}");
+        assert!(content.form::<Whole>().is_err());
+        assert!(content.form::<Whole>().is_err());
+        assert_eq!(gone.0.load(Ordering::Relaxed), 3, "not kept as a refusal");
     }
 }
