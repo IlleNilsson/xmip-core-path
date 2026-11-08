@@ -4,36 +4,50 @@
 // copied into each (ADR-0044): the language a technology implements and the
 // one engine that compiles a Path through it, the content a Message's Stream
 // is parsed into once and the rewrite that produces a new one, the token
-// cursor a parser walks, and the JSON document the JSON languages read and
-// rewrite. And Xmip's one expression language (ADR-0066), which route,
-// configure and what is compiled from a design all read.
+// cursor a parser walks, the namespaces a Path's configuration binds, and
+// the JSON document the JSON languages read and rewrite. And Xmip's one
+// expression language (ADR-0066), which route, configure and what is
+// compiled from a design all read.
 pub mod content;
 pub mod cursor;
 pub mod expression;
 pub mod json;
+pub mod namespaces;
 pub mod rewriting;
 
 pub use content::{Content, Form};
+pub use namespaces::Namespaces;
 pub use rewriting::{Editable, Rewriting};
 
 use contract::ContractError;
 use std::fmt;
 use xcore::ScalarValue;
 
-/// A Path as configuration writes it: the language and the expression, text.
-/// [`PathEngine::compile`] turns it into a [`CompiledPath`] once.
+/// A Path as configuration writes it: the language, the expression, text,
+/// and the namespaces its prefixes are bound to (ADR-0066, amendment
+/// 2026-11-08). [`PathEngine::compile`] turns it into a [`CompiledPath`]
+/// once.
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct Path {
     pub language: String,
     pub expression: String,
+    pub namespaces: Namespaces,
 }
 
 impl Path {
+    /// A Path that binds no namespace.
     pub fn new(language: impl Into<String>, expression: impl Into<String>) -> Self {
         Self {
             language: language.into(),
             expression: expression.into(),
+            namespaces: Namespaces::new(),
         }
+    }
+
+    /// This Path with its prefixes bound by `namespaces`.
+    #[must_use]
+    pub fn with_namespaces(self, namespaces: Namespaces) -> Self {
+        Self { namespaces, ..self }
     }
 }
 
@@ -44,11 +58,20 @@ pub trait PathLanguage: Send + Sync {
     /// The manifest leaf, and the `language` a [`Path`] names.
     fn language(&self) -> &'static str;
 
-    /// `expression`, compiled.
+    /// `expression`, compiled, its prefixes bound by `namespaces` and by
+    /// nothing the content declares (ADR-0066, amendment 2026-11-08). A
+    /// language with no namespaces refuses a table that binds anything
+    /// ([`Namespaces::unused_by`]).
     ///
     /// # Errors
-    /// The expression is not one of this language.
-    fn compile(&self, expression: &str) -> Result<Box<dyn CompiledExpression>, ContractError>;
+    /// The expression is not one of this language, it uses a prefix
+    /// `namespaces` does not bind, or the language has no namespaces and
+    /// `namespaces` binds one.
+    fn compile(
+        &self,
+        expression: &str,
+        namespaces: &Namespaces,
+    ) -> Result<Box<dyn CompiledExpression>, ContractError>;
 }
 
 /// An expression compiled by its language, read and written per Message
@@ -154,7 +177,7 @@ impl PathEngine {
             })?;
         Ok(CompiledPath {
             path: path.clone(),
-            compiled: language.compile(&path.expression)?,
+            compiled: language.compile(&path.expression, &path.namespaces)?,
         })
     }
 }
@@ -177,7 +200,12 @@ mod tests {
             "member"
         }
 
-        fn compile(&self, expression: &str) -> Result<Box<dyn CompiledExpression>, ContractError> {
+        fn compile(
+            &self,
+            expression: &str,
+            namespaces: &Namespaces,
+        ) -> Result<Box<dyn CompiledExpression>, ContractError> {
+            namespaces.unused_by(self.language())?;
             self.0.fetch_add(1, Ordering::Relaxed);
             Ok(Box::new(Named(expression.to_string())))
         }
@@ -227,6 +255,12 @@ mod tests {
             .compile(&Path::new("member", "id"))
             .expect_err("none loaded");
         assert!(empty.message.ends_with("the languages are none"));
+
+        let bound = Path::new("member", "id").with_namespaces(Namespaces::new().bind("o", "urn:o"));
+        assert_eq!(
+            engine.compile(&bound).expect_err("no namespaces").message,
+            "member has no namespaces, and the path binds o"
+        );
     }
 
     #[test]

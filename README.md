@@ -7,6 +7,14 @@ and implements `PathLanguage`; the one `PathEngine` carries the languages
 configuration loads and compiles a `Path` through the one it names, once,
 into a `CompiledPath`.
 
+**A Path's prefixes are its configuration's.** A `Path` is a language, an
+expression and `Namespaces`, the table binding each prefix the expression
+uses to a URI. `PathLanguage::compile` receives the table; a prefix resolves
+through it and never through the content, a prefix it does not bind is
+refused as the expression compiles, and a language without namespaces
+refuses a table that binds anything (`Namespaces::unused_by`; ADR-0066,
+amendment 2026-11-08).
+
 **Once, per message.** Nothing on the message path parses an expression: it
 was compiled with the configuration. A compiled path reads `Content`, one
 Stream parsed at most once per form (`Form`) however many paths read it —
