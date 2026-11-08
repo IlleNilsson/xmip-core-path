@@ -15,7 +15,7 @@ pub mod json;
 pub mod namespaces;
 pub mod rewriting;
 
-pub use content::{Content, Form};
+pub use content::{Content, Form, text};
 pub use namespaces::Namespaces;
 pub use rewriting::{Editable, Rewriting};
 
@@ -298,7 +298,7 @@ mod tests {
             .write(&mut rewriting, ScalarValue::Integer(2))
             .expect("writes");
         assert_eq!(
-            rewriting.finish().expect("finishes").bytes(),
+            rewriting.finish().expect("finishes").load().expect("held"),
             br#"{"id":2}"#
         );
     }

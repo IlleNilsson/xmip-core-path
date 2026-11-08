@@ -78,7 +78,7 @@ impl Rewriting {
             if let Some(open) = self.open.take() {
                 self.source = self.written(open)?;
             }
-            self.open = Some(Box::new(T::open(self.source.bytes())?));
+            self.open = Some(Box::new(T::open(self.source.load()?)?));
         }
         self.open
             .as_deref_mut()
@@ -96,7 +96,7 @@ impl Rewriting {
             Some(open) => self.written(open),
             None => Ok(Stream::new(
                 self.id,
-                self.source.bytes().to_vec(),
+                self.source.load()?.to_vec(),
                 self.source.media_type().map(str::to_string),
             )),
         }
@@ -146,7 +146,7 @@ mod tests {
             .finish()
             .expect("finishes");
         assert_eq!(finished.id(), StreamId::new(2));
-        assert_eq!(finished.bytes(), b"a");
+        assert_eq!(finished.load().expect("held"), b"a");
         assert_eq!(finished.media_type(), Some("text/csv"));
     }
 
@@ -163,7 +163,7 @@ mod tests {
             Value::from("y")
         );
         let finished = rewriting.finish().expect("finishes");
-        assert_eq!(finished.bytes(), br#"{"a":"y","b":1}"#);
+        assert_eq!(finished.load().expect("held"), br#"{"a":"y","b":1}"#);
         assert_eq!(finished.media_type(), Some("application/json"));
     }
 

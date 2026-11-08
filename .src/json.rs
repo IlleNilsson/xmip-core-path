@@ -18,7 +18,7 @@ fn parse(bytes: &[u8]) -> Result<Value, ContractError> {
 
 impl Form for Value {
     fn parse(stream: &Stream) -> Result<Self, ContractError> {
-        parse(stream.bytes())
+        parse(stream.load()?)
     }
 }
 
@@ -145,7 +145,7 @@ mod tests {
         rewriting.form_mut::<Value>().expect("json")["a"] = Value::from(2);
         let finished = rewriting.finish().expect("stream");
         assert_eq!(finished.id(), StreamId::new(7));
-        assert_eq!(finished.bytes(), br#"{"a":2}"#);
+        assert_eq!(finished.load().expect("held"), br#"{"a":2}"#);
         assert_eq!(finished.media_type(), Some("application/json"));
     }
 
