@@ -196,21 +196,71 @@ fn quoted(text: &str) -> String {
     Value::Text(text.to_string()).show()
 }
 
-/// Whether `text` matches the `like` pattern: `%` is any run of characters,
-/// `_` exactly one, and everything else itself. Linear in the text for a
-/// pattern with one `%`, and never worse than the two lengths multiplied.
-pub(crate) fn like(text: &str, pattern: &str) -> bool {
+/// One piece of a `like` pattern.
+#[derive(Clone, Copy, PartialEq, Eq)]
+pub(crate) enum Piece {
+    /// `%`: any run of characters, none included.
+    Run,
+    /// `_`: exactly one character.
+    One,
+    /// A character that matches only itself.
+    Itself(char),
+}
+
+/// The pieces of `pattern`: `%` a run, `_` one character, and, where an
+/// `escape` is given, the escape before `%`, `_` or itself that character
+/// as itself (SQL's `ESCAPE` clause).
+///
+/// # Errors
+/// The escape stands before anything else, or at the end: SQL's invalid
+/// escape sequence, said in words.
+pub(crate) fn pieces(pattern: &str, escape: Option<char>) -> Result<Vec<Piece>, Unknown> {
+    let mut pieces = Vec::with_capacity(pattern.len());
+    let mut characters = pattern.chars();
+    while let Some(character) = characters.next() {
+        pieces.push(match character {
+            found if Some(found) == escape => match characters.next() {
+                Some(next) if next == '%' || next == '_' || Some(next) == escape => {
+                    Piece::Itself(next)
+                }
+                _ => {
+                    return Err(format!(
+                        "{} escapes nothing where it stands in {}: it escapes %, _ or itself",
+                        quoted(&found.to_string()),
+                        quoted(pattern)
+                    ));
+                }
+            },
+            '%' => Piece::Run,
+            '_' => Piece::One,
+            other => Piece::Itself(other),
+        });
+    }
+    Ok(pieces)
+}
+
+/// Whether `text` matches the `like` pattern, as [`pieces`] reads it.
+/// Linear in the text for a pattern with one `%`, and never worse than the
+/// two lengths multiplied.
+///
+/// # Errors
+/// As [`pieces`].
+pub(crate) fn like(text: &str, pattern: &str, escape: Option<char>) -> Result<bool, Unknown> {
+    let pattern = pieces(pattern, escape)?;
     let text: Vec<char> = text.chars().collect();
-    let pattern: Vec<char> = pattern.chars().collect();
     let (mut at, mut from) = (0, 0);
     let mut retry: Option<(usize, usize)> = None;
     while at < text.len() {
         match pattern.get(from) {
-            Some('%') => {
+            Some(Piece::Run) => {
                 from += 1;
                 retry = Some((from, at));
             }
-            Some(&wanted) if wanted == '_' || wanted == text[at] => {
+            Some(Piece::One) => {
+                at += 1;
+                from += 1;
+            }
+            Some(&Piece::Itself(wanted)) if wanted == text[at] => {
                 at += 1;
                 from += 1;
             }
@@ -220,11 +270,11 @@ pub(crate) fn like(text: &str, pattern: &str) -> bool {
                     at = start + 1;
                     retry = Some((after, at));
                 }
-                None => return false,
+                None => return Ok(false),
             },
         }
     }
-    pattern[from..].iter().all(|&rest| rest == '%')
+    Ok(pattern[from..].iter().all(|&rest| rest == Piece::Run))
 }
 
 #[cfg(test)]
@@ -325,7 +375,38 @@ mod tests {
             ("abc", "abc", true),
             ("abc", "abd", false),
         ] {
-            assert_eq!(like(text, pattern), matched, "{text} like {pattern}");
+            assert_eq!(
+                like(text, pattern, None),
+                Ok(matched),
+                "{text} like {pattern}"
+            );
         }
+    }
+
+    #[test]
+    fn an_escaped_wildcard_matches_only_itself() {
+        for (text, pattern, matched) in [
+            ("a_b-1", r"a\_b%", true),
+            ("axb-1", r"a\_b%", false),
+            ("100%", r"100\%", true),
+            ("1000", r"100\%", false),
+            (r"C:\in", r"C:\\in", true),
+            ("a_b-1", "a_b%", true),
+            ("axb-1", "a_b%", true),
+        ] {
+            let escape = pattern.contains('\\').then_some('\\');
+            assert_eq!(
+                like(text, pattern, escape),
+                Ok(matched),
+                "{text} like {pattern}"
+            );
+        }
+        assert_eq!(like("a!_b", "a!!!_b", Some('!')), Ok(true));
+        let refused = like("ab", r"a\b", Some('\\')).expect_err("escapes nothing");
+        assert_eq!(
+            refused,
+            r"'\' escapes nothing where it stands in 'a\b': it escapes %, _ or itself"
+        );
+        assert!(like("a", r"a\", Some('\\')).is_err(), "at the end");
     }
 }

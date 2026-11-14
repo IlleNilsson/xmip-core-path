@@ -46,9 +46,11 @@ MessageType = 'Order' and not Amount > 1000 and header:http.x-channel = 'web'
 Shaped like SQL's WHERE clause and deliberately small: names bare with
 their source's prefix, or in double quotes; text in single quotes, a quote
 doubled; 64-bit integers and `true`/`false`, no decimals; `=`, `<>` (`!=`
-reads as it, `==` is refused), `<`, `<=`, `>`, `>=`, `[not] like`,
-`[not] in (…)`, `exists` (and `is [not] null`), `and`, `or`, `not`; `||`,
-`+ - * /` and `coalesce`. No loops, no functions of the user's own, no I/O.
+reads as it, `==` is refused), `<`, `<=`, `>`, `>=`, `[not] like` (with SQL's
+`escape 'c'`; `Condition::starts_with` writes a prefix that matches only as
+written), `[not] in (…)`, `exists` (and `is [not] null`), `and`, `or`,
+`not`; `||`, `+ - * /` and `coalesce`. No loops, no functions of the user's
+own, no I/O.
 `Expression::parse` parses once and checks every part's kind — a name takes
 the kind of what it meets, so `Amount > 1000` reads Amount as an integer —
 and `evaluate` decides the tree over any `Names` without parsing again, in

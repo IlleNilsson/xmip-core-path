@@ -12,6 +12,7 @@ use contract::ContractError;
 use super::condition::Condition;
 use super::lexer::error;
 use super::operand::{Operand, Operator};
+use super::reading::pieces;
 use super::value::Value;
 
 /// What a part of an expression is known to be.
@@ -73,9 +74,22 @@ pub fn check(condition: &Condition) -> Result<(), ContractError> {
             }
             Ok(())
         }
-        Condition::Like { value, pattern, .. } => {
+        Condition::Like {
+            value,
+            pattern,
+            escape,
+            ..
+        } => {
             textual(condition, kind(value)?)?;
-            textual(condition, kind(pattern)?)
+            textual(condition, kind(pattern)?)?;
+            // A pattern written as text has its escapes checked here, once;
+            // one read off a name is checked as it is read.
+            match pattern {
+                Operand::Literal(Value::Text(text)) => pieces(text, *escape)
+                    .map(|_| ())
+                    .map_err(|why| error(format!("{condition}: {why}"))),
+                _ => Ok(()),
+            }
         }
         Condition::In { value, list, .. } => {
             let mut shared = kind(value)?;
