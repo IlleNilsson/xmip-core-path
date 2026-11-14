@@ -18,8 +18,10 @@
 //!   quotes, a quote doubled inside it. **Integers** and **booleans**
 //!   (`true`, `false`) are written as themselves; there are no decimals.
 //! - **Conditions**: `=`, `<>` (and `!=`, read as `<>`), `<`, `<=`, `>`,
-//!   `>=`; `[not] like` with `%` and `_`; `[not] in (…)`; `exists X`, and
-//!   `X is [not] null` read as it; `and`, `or`, `not`, parentheses.
+//!   `>=`; `[not] like` with `%` and `_`, and SQL's `escape 'c'` making
+//!   `c` before `%`, `_` or itself that character as itself; `[not] in
+//!   (…)`; `exists X`, and `X is [not] null` read as it; `and`, `or`,
+//!   `not`, parentheses.
 //! - **Values**: `||` joins text, `+ - * /` compute integers, `coalesce(…)`
 //!   takes the first that has a value.
 //! - No loops, no functions of the user's own, no I/O: its cost grows with
@@ -49,9 +51,9 @@ mod reading;
 mod truth;
 mod value;
 
-pub use condition::{Comparison, Condition, OPERATORS};
+pub use condition::{Comparison, Condition, ESCAPE, OPERATORS};
 pub use operand::{KEYWORDS, Operand, Operator};
-pub use parser::{operand, operands};
+pub use parser::{operand, operands, pattern};
 pub use truth::Truth;
 pub use value::{KINDS, Value};
 
@@ -224,6 +226,66 @@ mod tests {
         let refused = toml::from_str::<Holder>("filter = \"Amount > 'x' + 1\"")
             .expect_err("arithmetic on text");
         assert!(refused.to_string().contains("arithmetic"), "{refused}");
+    }
+
+    #[test]
+    fn a_like_s_escape_is_read_printed_and_checked_once() {
+        let escaped = Expression::parse(r"Party LIKE 'a\_b%' ESCAPE '\'").expect("parses");
+        assert_eq!(escaped.canonical(), r"Party like 'a\_b%' escape '\'");
+        assert_eq!(
+            Expression::parse(&escaped.canonical()).expect("parses"),
+            escaped
+        );
+        assert_ne!(
+            escaped,
+            Expression::parse(r"Party like 'a\_b%'").expect("parses")
+        );
+        assert_eq!(
+            Expression::parse("escape like 'a%' and escape = 'x'")
+                .expect("a name may still be escape")
+                .names(),
+            ["escape"]
+        );
+        for refused in [
+            r"Party like 'a\b%' escape '\'",
+            r"Party like 'a%' escape '\\'",
+            "Party like 'a%' escape ''",
+            "Party like 'a%' escape Party",
+        ] {
+            assert!(Expression::parse(refused).is_err(), "{refused}");
+        }
+        assert_eq!(
+            pattern(r"'a\_b%' escape '\'").expect("a row's pattern"),
+            (Operand::Literal(Value::Text(r"a\_b%".into())), Some('\\'))
+        );
+    }
+
+    #[test]
+    fn a_prefix_matches_only_what_it_says() {
+        struct Party(&'static str);
+        impl Names for Party {
+            fn value(&self, _: &str) -> Option<&str> {
+                Some(self.0)
+            }
+        }
+        let starts = |prefix: &str| {
+            Expression::from_condition(Condition::starts_with(Operand::Name("p".into()), prefix))
+                .expect("compiles")
+        };
+        for (prefix, value, holds) in [
+            ("a_b", "a_bc", true),
+            ("a_b", "axbc", false),
+            ("100%", "100%-off", true),
+            ("100%", "1000", false),
+            (r"C:\in", r"C:\in\x", true),
+            (r"C:\in", r"C:xin", false),
+        ] {
+            assert_eq!(
+                starts(prefix).evaluate(&Party(value)).holds(),
+                holds,
+                "{prefix} {value}"
+            );
+        }
     }
 
     #[test]

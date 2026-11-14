@@ -78,10 +78,12 @@ impl Condition {
                 value,
                 pattern,
                 negated,
+                escape,
             } => match (read(value, names), read(pattern, names)) {
                 (Err(why), _) | (_, Err(why)) => Truth::Unknown(why),
-                (Ok(text), Ok(pattern)) => {
-                    if like(&text.text(), &pattern.text()) == *negated {
+                (Ok(text), Ok(pattern)) => match like(&text.text(), &pattern.text(), *escape) {
+                    Err(why) => Truth::Unknown(why),
+                    Ok(matched) if matched == *negated => {
                         let word = if *negated {
                             "which is like"
                         } else {
@@ -90,10 +92,9 @@ impl Condition {
                         Truth::False(why(explain, || {
                             format!("{value} is {}, {word} {}", text.show(), pattern.show())
                         }))
-                    } else {
-                        Truth::True
                     }
-                }
+                    Ok(_) => Truth::True,
+                },
             },
             Self::In {
                 value,
@@ -319,6 +320,17 @@ mod tests {
         assert!(truth("Amount > 900").holds());
         assert!(!truth("Amount > '900'").holds());
         assert!(truth("Urgent = true and Customer like 'EU-00_2'").holds());
+        assert!(!truth(r"Customer like 'EU-00\_2' escape '\'").holds());
+        assert!(truth(r"Customer not like 'EU\_%' escape '\'").holds());
+        assert!(!truth(r"Customer like 'EU-!%' escape '!'").holds());
+        assert_eq!(
+            truth(r"MessageType like Customer escape '-'"),
+            Truth::Unknown(
+                "'-' escapes nothing where it stands in 'EU-0042': it escapes %, _ or itself"
+                    .to_string()
+            ),
+            "a pattern read off a name is checked as it is read"
+        );
         assert!(truth("Amount in (1500, 7) and MessageType not in ('Invoice')").holds());
         assert!(truth("Amount + 500 = 2000 and Customer || '!' = 'EU-0042!'").holds());
     }

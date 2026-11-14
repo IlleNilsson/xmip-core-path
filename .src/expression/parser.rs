@@ -14,7 +14,7 @@
 use crate::cursor::Cursor;
 use contract::ContractError;
 
-use super::condition::{Comparison, Condition};
+use super::condition::{Comparison, Condition, ESCAPE_WORD};
 use super::lexer::{Token, error, tokenize};
 use super::operand::{Operand, Operator};
 use super::value::Value;
@@ -69,6 +69,47 @@ pub fn operands(text: &str) -> Result<Vec<Operand>, ContractError> {
     let list = list(&mut cursor)?;
     finished(&cursor)?;
     Ok(list)
+}
+
+/// Parse `text` as a `like`'s pattern and its escape, `'a\_b%' escape
+/// '\'`, as a designer's row holds them.
+///
+/// # Errors
+/// As [`condition`], or the escape is not one character in single quotes.
+pub fn pattern(text: &str) -> Result<(Operand, Option<char>), ContractError> {
+    let tokens = tokenize(text)?;
+    let mut cursor = Cursor::new("expression", &tokens);
+    let pattern = escaped_pattern(&mut cursor)?;
+    finished(&cursor)?;
+    Ok(pattern)
+}
+
+/// A `like`'s pattern, and the character after `escape` where the word
+/// follows it: one character in single quotes, as SQL's `ESCAPE` clause
+/// takes. `escape` is a word only there, so a name may still be `escape`.
+fn escaped_pattern(cursor: &mut Tokens<'_>) -> Result<(Operand, Option<char>), ContractError> {
+    let pattern = into_operand(concatenation(cursor)?)?;
+    if !keyword(cursor, ESCAPE_WORD) {
+        return Ok((pattern, None));
+    }
+    cursor.advance(1);
+    let mut characters = match cursor.peek() {
+        Some(Token::Text(text)) => text.chars(),
+        _ => {
+            return Err(error(
+                "escape is followed by one character in single quotes",
+            ));
+        }
+    };
+    match (characters.next(), characters.next()) {
+        (Some(escape), None) => {
+            cursor.advance(1);
+            Ok((pattern, Some(escape)))
+        }
+        _ => Err(error(
+            "escape is followed by one character in single quotes",
+        )),
+    }
 }
 
 fn finished(cursor: &Tokens<'_>) -> Result<(), ContractError> {
@@ -134,10 +175,12 @@ fn predicate(cursor: &mut Tokens<'_>) -> Result<Parsed, ContractError> {
         }
     } else if keyword(cursor, "like") {
         cursor.advance(1);
+        let (pattern, escape) = escaped_pattern(cursor)?;
         Condition::Like {
             value: into_operand(left)?,
-            pattern: into_operand(concatenation(cursor)?)?,
+            pattern,
             negated,
+            escape,
         }
     } else if keyword(cursor, "in") {
         cursor.advance(1);

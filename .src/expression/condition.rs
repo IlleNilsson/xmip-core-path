@@ -10,6 +10,7 @@
 use std::fmt;
 
 use super::operand::{Operand, write_list};
+use super::value::Value;
 
 /// A condition, parsed once.
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -26,11 +27,13 @@ pub enum Condition {
         right: Operand,
     },
     /// `value like pattern`, or `not like`: `%` is any run of characters,
-    /// `_` any one.
+    /// `_` any one. With `escape 'c'`, SQL's `ESCAPE` clause, `c` before
+    /// `%`, `_` or itself is that character as itself.
     Like {
         value: Operand,
         pattern: Operand,
         negated: bool,
+        escape: Option<char>,
     },
     /// `value in (a, b, …)`, or `not in`.
     In {
@@ -98,12 +101,38 @@ pub(crate) const NOT_LIKE: &str = "not like";
 pub(crate) const IN: &str = "in";
 pub(crate) const NOT_IN: &str = "not in";
 pub(crate) const EXISTS: &str = "exists";
+/// The word before a `like`'s escape character.
+pub(crate) const ESCAPE_WORD: &str = "escape";
+
+/// The escape [`Condition::starts_with`] writes: the backslash.
+pub const ESCAPE: char = '\\';
 
 impl Condition {
     /// Everything: an empty `and`, written `true`.
     #[must_use]
     pub const fn everything() -> Self {
         Self::All(Vec::new())
+    }
+
+    /// `value` begins with `prefix`, every `%`, `_` and [`ESCAPE`] in it
+    /// matching only itself: `value like 'prefix%' escape '\'`. The one
+    /// place a text is turned into a pattern that matches it as written.
+    #[must_use]
+    pub fn starts_with(value: Operand, prefix: &str) -> Self {
+        let mut pattern = String::with_capacity(prefix.len() + 1);
+        for character in prefix.chars() {
+            if matches!(character, '%' | '_' | ESCAPE) {
+                pattern.push(ESCAPE);
+            }
+            pattern.push(character);
+        }
+        pattern.push('%');
+        Self::Like {
+            value,
+            pattern: Operand::Literal(Value::Text(pattern)),
+            negated: false,
+            escape: Some(ESCAPE),
+        }
     }
 
     /// The word of [`OPERATORS`] this condition is a row of; `None` for a
@@ -202,8 +231,17 @@ impl fmt::Display for Condition {
                 comparison,
                 right,
             } => write!(f, "{left} {} {right}", comparison.spelling()),
-            Self::Like { value, pattern, .. } => {
-                write!(f, "{value} {} {pattern}", self.operator().unwrap_or(LIKE))
+            Self::Like {
+                value,
+                pattern,
+                escape,
+                ..
+            } => {
+                write!(f, "{value} {} {pattern}", self.operator().unwrap_or(LIKE))?;
+                match escape {
+                    Some(escape) => write!(f, " {ESCAPE_WORD} {}", Value::Text(escape.to_string())),
+                    None => Ok(()),
+                }
             }
             Self::In { value, list, .. } => {
                 write!(f, "{value} {} (", self.operator().unwrap_or(IN))?;
@@ -218,7 +256,6 @@ impl fmt::Display for Condition {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::expression::value::Value;
 
     fn equals(name: &str, number: i64) -> Condition {
         Condition::Compare {
@@ -259,7 +296,9 @@ mod tests {
                 value: name(),
                 pattern: text("E%"),
                 negated: true,
+                escape: None,
             },
+            Condition::starts_with(name(), r"E_1%\"),
             Condition::In {
                 value: name(),
                 list: vec![text("EU"), text("US")],
@@ -272,11 +311,12 @@ mod tests {
             printed,
             [
                 "Region not like 'E%'",
+                r"Region like 'E\_1\%\\%' escape '\'",
                 "Region in ('EU', 'US')",
                 "exists Region"
             ]
         );
-        assert_eq!(rows[1].operator(), Some("in"));
+        assert_eq!(rows[2].operator(), Some("in"));
         assert_eq!(Condition::everything().operator(), None);
         assert_eq!(OPERATORS[1], Comparison::NotEqual.spelling());
     }
