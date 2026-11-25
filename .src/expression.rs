@@ -23,7 +23,10 @@
 //!   (…)`; `exists X`, and `X is [not] null` read as it; `and`, `or`,
 //!   `not`, parentheses.
 //! - **Values**: `||` joins text, `+ - * /` compute integers, `coalesce(…)`
-//!   takes the first that has a value.
+//!   takes the first that has a value. A value on its own, with no
+//!   condition around it, compiles as a [`Computed`]: what a Work Process
+//!   keeps of its own is computed from one (ADR-0066, amendment
+//!   2026-11-25).
 //! - No loops, no functions of the user's own, no I/O: its cost grows with
 //!   its length alone.
 //!
@@ -42,6 +45,7 @@
 //! Reading never rewrites: an [`Expression`] keeps the text it was written
 //! as.
 
+mod computed;
 mod condition;
 mod kind;
 mod lexer;
@@ -51,6 +55,7 @@ mod reading;
 mod truth;
 mod value;
 
+pub use computed::Computed;
 pub use condition::{Comparison, Condition, ESCAPE, OPERATORS};
 pub use operand::{KEYWORDS, Operand, Operator};
 pub use parser::{operand, operands, pattern};

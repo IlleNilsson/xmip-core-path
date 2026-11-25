@@ -102,6 +102,14 @@ pub fn check(condition: &Condition) -> Result<(), ContractError> {
     }
 }
 
+/// Check every part of `operand`, a value on its own ([`super::Computed`]).
+///
+/// # Errors
+/// As [`check`], for the parts of a value.
+pub fn value(operand: &Operand) -> Result<(), ContractError> {
+    kind(operand).map(|_| ())
+}
+
 fn meet(part: &impl std::fmt::Display, left: Kind, right: Kind) -> Result<Kind, ContractError> {
     left.meet(right).ok_or_else(|| {
         error(format!(
