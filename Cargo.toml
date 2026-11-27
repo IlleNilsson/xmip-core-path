@@ -1,8 +1,8 @@
 [package]
 name = "xmip-core-path"
-version = "0.1.0"
-edition = "2024"
-license = "AGPL-3.0-or-later"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
 repository = "https://github.com/IlleNilsson/xmip-core-path"
 description = "Path declarations and path execution contracts for Xmip."
 
@@ -27,3 +27,5 @@ serde = "1"
 [dev-dependencies]
 # Only the tests read an expression out of a TOML document.
 toml = "1.2.1"
+
+[lints]
