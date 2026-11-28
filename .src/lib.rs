@@ -5,12 +5,12 @@
 // one engine that compiles a Path through it, the content a Message's Stream
 // is parsed into once and the rewrite that produces a new one, the token
 // cursor a parser walks, the namespaces a Path's configuration binds, and
-// the JSON document the JSON languages read and rewrite. And Xmip's one
-// expression language (ADR-0066), which route, configure and what is
-// compiled from a design all read.
+// the JSON document the JSON languages read and rewrite. Xmip's expression
+// language is a capability of its own, xmip-core-expression, which uses
+// this one's cursor; this crate never uses it (ADR-0066, amendment
+// 2026-11-28).
 pub mod content;
 pub mod cursor;
-pub mod expression;
 pub mod json;
 pub mod namespaces;
 pub mod rewriting;

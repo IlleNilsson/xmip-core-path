@@ -11,21 +11,12 @@ description = "Path declarations and path execution contracts for Xmip."
 path = ".src/lib.rs"
 
 [dependencies]
-contract = { package = "xmip-core-contract", git = "https://github.com/IlleNilsson/xmip-core-contract", branch = "main" }
+contract = { workspace = true }
 # The Stream a path's content is parsed from once and a rewrite produces
 # (content.rs, rewriting.rs), the StreamId it carries, and the JSON document
 # the JSON path technologies share (json.rs, ADR-0044).
-stream = { package = "xmip-core-stream", git = "https://github.com/IlleNilsson/xmip-core-stream", branch = "main" }
-xcore = { package = "xmip-core", git = "https://github.com/IlleNilsson/xmip-core", branch = "main" }
+stream = { workspace = true }
+xcore = { workspace = true }
 serde_json = "1"
-# Xmip's expression language (expression.rs, ADR-0066): its lexer reads
-# through the one character reader, and an expression is read from and
-# written to configuration as its text.
-codec = { package = "xmip-core-library-codec", git = "https://github.com/IlleNilsson/xmip-core-library-codec", branch = "main" }
-serde = "1"
-
-[dev-dependencies]
-# Only the tests read an expression out of a TOML document.
-toml = "1.2.1"
 
 [lints]
